@@ -2,7 +2,9 @@
   "name": "err-dat",
   "scripts": {
     "build": "tsc",
-    "ci": "npm run build"
+    "ci": "npm run build && npm run check-format",
+    "check-format": "prettier --check .",
+    "format": "prettier --write ."
   },
   "version": "0.0.1",
   "description": "returns [err, dat] tuples from functions that throw Errors",
