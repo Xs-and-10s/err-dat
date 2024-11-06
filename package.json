@@ -1,0 +1,47 @@
+{
+  "name": "err-dat",
+  "scripts": {
+    "build": "tsc"
+  },
+  "version": "0.0.1",
+  "description": "returns [err, dat] tuples from functions that throw Errors",
+  "keywords": [
+    "err-dat",
+    "err-dat.ts",
+    "error",
+    "errors",
+    "err",
+    "dat",
+    "dat-err",
+    "dat-err.ts",
+    "try-catch",
+    "try",
+    "catch",
+    "single",
+    "multi",
+    "panic",
+    "async",
+    "typescript",
+    "e"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/Xs-and-10s/err-dat",
+  "bugs": {
+    "url": "https://github.com/Xs-and-10s/err-dat/issues",
+    "email": "mark.manley.2010@gmail.com"
+  },
+  "author": {
+    "name": "Mark Manley"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xs-and-10s/err-dat.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
