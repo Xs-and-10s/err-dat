@@ -1,7 +1,8 @@
 {
   "name": "err-dat",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "ci": "npm run build"
   },
   "version": "0.0.1",
   "description": "returns [err, dat] tuples from functions that throw Errors",
