@@ -2,10 +2,12 @@
   "name": "err-dat",
   "scripts": {
     "build": "tsc",
-    "ci": "npm run build && npm run check-format",
+    "check-exports": "attw --pack . --ignore-rules=cjs-resolves-to-esm",
     "check-format": "prettier --check .",
+    "ci": "npm run build && npm run check-format",
     "format": "prettier --write ."
   },
+  "main": "dist/index.js",
   "version": "0.0.1",
   "description": "returns [err, dat] tuples from functions that throw Errors",
   "keywords": [
