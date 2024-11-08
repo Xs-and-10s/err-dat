@@ -1,1 +1,1 @@
-export const TRUE = true;
+export const TEST_RUNNER_IS_WORKING = true;
