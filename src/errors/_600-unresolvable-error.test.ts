@@ -291,10 +291,13 @@ suite("UnresolvableError.create", () => {
     });
     const actual = UnresolvableError.create("17_outer", context, cause);
 
+    expect((actual.cause as any).message).toBe(
+      "Unresolvable Error thrown! This should not happen, contact the owning dev(s)...",
+    );
+    expect((actual.cause as any).cause.message).toBe("...rest");
     expect((actual.cause as any).cause.cause.message).toBe(
       (ue.cause as any).cause.message,
     );
-    expect((actual.cause as any).cause.message).toBe("...rest");
     expect((actual.cause as any).cause.cause.message).toBe(cause.message);
   });
   test("18) @create .statusCode = Unresolvable .statusCode", () => {
