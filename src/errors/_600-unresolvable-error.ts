@@ -39,13 +39,13 @@ export class UnresolvableError<E extends GenericError> extends GenericError {
     // Set the prototype explicitly, so instanceof works.
     Object.setPrototypeOf(this, UnresolvableError.prototype);
   }
-  static override get name() {
+  static override get name(): "UnresolvableError" {
     return "UnresolvableError";
   }
-  static override get statusCode() {
+  static override get statusCode(): "600" {
     return "600";
   }
-  override get statusCode() {
+  override get statusCode(): "600" {
     return "600";
   }
 
