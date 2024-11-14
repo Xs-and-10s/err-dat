@@ -2,7 +2,7 @@
 
 ## Summary
 
-Exports functions { `syncTry`, `asyncTry`, `multiSyncTry`, `multiAsyncTry`, `pipeSyncTry`, `pipeAsyncTry` } that **catch thrown errors** and provides them **as values**, which conform to an **`[err, dat]` tuple** format when returning from their wrapped functions.
+Exports functions { `syncTry`, `asyncTry`, `multiSyncTry`, `multiAsyncTry`, `pipeSyncTry`, `pipeAsyncTry` } that **catch thrown errors** and provides them **as values**, which conform to an **`[err, dat]` tuple** format when returning from their wrapped functions, in a pattern similar to the proposal: ["Safe Assignment Operator"](https://github.com/arthurfiorette/proposal-safe-assignment-operator) `?=` *(which should probably be `!?=` instead...)*
 
 Also provides { `panic`,
 `ensureError` } helper functions that help ease and enforce robust error handling!
@@ -20,7 +20,7 @@ import { asyncTry, ensureError, multiAsyncTry, panic, multiSyncTry, panic, syncT
  * `asyncTry`
  *  where: 
  *    <As extends any[], B extends any, E extends GenericError>
- * @param {(As) => B} asyncFnToTry
+ * @param {(...args: As) => B} asyncFnToTry
  * @param {(E[] | null) | undefined} errorsToCatch
  * @param {((B) => void) | undefined} onDone
  */
@@ -57,7 +57,7 @@ if (err) {
     return handleGeneric(err.message, err.cause, err.cause?.cause);
   }
 }
-// get to the happy-path logic!
+// ...get to the happy-path logic!
 // .
 // .
 // .
@@ -73,11 +73,11 @@ if (err) {
  * ? a synchronous function that might throw an error.
  * @param {(E[] | null) | undefined} errorsToCatch 
  * ? an optional Array of GenericError class or subclass, where: class GenericError extends Error (+ adds a this.context).
- * @param {(B?) => void} onDone 
+ * @param {((B) => void) | undefined} onDone 
  * ? an optional parameter that is called with the returned value when successful, and without the returned value when unsuccessful.
  */
 const msg: string = "test";
-const that = () => {
+const that = (msg: string) => {
   throw new GenericError(msg);
 }
 const captureThrownErrorWith = syncTry(that, 
@@ -122,8 +122,8 @@ if (err) {
 ```ts
 // ! `syncTry` can also handle recursive functions (both tail & non-tail):
 const total = 5050;
-
 const range = [1, 100] as const;
+
 const sumRange = ([a, z]: readonly [a: number, z: number], y = 0) => {
   // Base case: when we've processed all pairs
   if (a > z) return y;
@@ -184,7 +184,7 @@ if (failed) {
   throw exception;
 }
 const [theFirstError, theFirstResult] = await firstSettled;
-// ... handle logic if needed for the first results
+// ... handle logic if needed for the first results...
 // .
 // .
 // .
