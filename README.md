@@ -2,10 +2,9 @@
 
 ## Summary
 
-Exports functions { `syncTry`, `asyncTry`, `multiSyncTry`, `multiAsyncTry`, `pipeSyncTry`, `pipeAsyncTry` } that **catch thrown errors** and provides them **as values**, which conform to an **`[err, dat]` tuple** format when returning from their wrapped functions, in a pattern similar to the proposal: ["Safe Assignment Operator"](https://github.com/arthurfiorette/proposal-safe-assignment-operator) `?=` *(which should probably be `!?=` instead...)*
+Exports functions { `syncTry`, `asyncTry`, `multiSyncTry`, `multiAsyncTry`, `pipeSyncTry`, `pipeAsyncTry` } that **catch thrown errors** and provides them **as values**, which conform to an **`[err, dat]` tuple** format when returning from their wrapped functions, in a pattern corresponding to the proposal: ["Safe Assignment Operator"](https://github.com/arthurfiorette/proposal-safe-assignment-operator) `?=` *(which should probably be `!?=` instead...)*
 
-Also provides { `panic`,
-`ensureError` } helper functions that help ease and enforce robust error handling!
+Also provides { `panic`, `ensureError` } helper functions that help ease and enforce robust error handling!
 
 Finally, provides a set of custom Errors: { `GenericError` } that `extends Error` & adds `this.context`, as well as errors { `UnresolvableError`, `...` } that `extends GenericError`, where `UnresolvableError` indicates that the state of the program is such that it should abort, usually (*if not always*) via `panic`!  These custom errors conform to a superset of the HTTP statusCode spec, with the addition of `"0xx"` errors reserved for `GenericError` and `CustomError`s, and `"600"` being reserved for `UnresolvableError`.
 
