@@ -208,7 +208,7 @@ const [fetchUserServices, exception] = multiAsyncTry<[string, string, any],[User
   console.log("The first promise settled. You can now do something with this callback.");
 },
 (all: (B | undefined)[]) => {
-  console.log"All the promises have settled.  You can now do something with this callback.
+  console.log"All the promises have settled.  You can now do something with this callback."
 });
 
 if (exception) {
