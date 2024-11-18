@@ -18,7 +18,7 @@ suite("multiAsyncTry", () => {
   test("2) Empty Array as args -> exception", async () => {
     const [tryGetNothing, exception] = multiAsyncTry([]);
 
-    expect(tryGetNothing).toBeDefined();
+    expect(tryGetNothing).toBeTypeOf("function");
     expect(exception).toEqual(
       UnresolvableError.create("asyncFns must NOT be an empty array", {
         functionName: "tryGetNothing",
@@ -85,7 +85,7 @@ suite("multiAsyncTry", () => {
     );
 
     expect(exception).toBeUndefined();
-    expect(tryGetOddsOfCoinFlip).toBeTruthy();
+    expect(tryGetOddsOfCoinFlip).toBeTypeOf("function");
 
     const { firstSettled, allSettled } = tryGetOddsOfCoinFlip([1]);
 
@@ -117,7 +117,7 @@ suite("multiAsyncTry", () => {
       [string, never]
     >([goodFn, badFn]);
     expect(exception).toBeUndefined();
-    expect(tryGetGoodBadMsgs).toBeTruthy();
+    expect(tryGetGoodBadMsgs).toBeTypeOf("function");
 
     const { firstSettled, allSettled } = tryGetGoodBadMsgs([goodMsg, badMsg]);
 
@@ -151,7 +151,7 @@ suite("multiAsyncTry", () => {
       [string, never]
     >([goodFn, badFn]);
     expect(exception).toBeUndefined();
-    expect(tryGetGoodBadMsgs).toBeTruthy();
+    expect(tryGetGoodBadMsgs).toBeTypeOf("function");
 
     const { firstSettled, allSettled } = tryGetGoodBadMsgs([goodMsg, badMsg]);
 
