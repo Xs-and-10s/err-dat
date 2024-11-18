@@ -5,44 +5,38 @@ import { GenericError } from "../errors/_000-generic-error.js";
 
 suite("multiAsyncTry", () => {
   test("1) No args -> exception", async () => {
-    const [except, tryGetNothing] = multiAsyncTry<[number], [never]>();
-    expect(except).toBeTruthy();
-    expect(tryGetNothing).toBeTypeOf("function");
+    const [tryGetNothing, exception] = multiAsyncTry<[number], [never]>();
 
-    const { exception, failed } = tryGetNothing([42]);
+    expect(tryGetNothing).toBeTypeOf("function");
     expect(exception).toEqual(
       UnresolvableError.create("asyncFns must be an array of functions", {
         functionName: "tryGetNothing",
         values: [42],
       }),
     );
-    expect(failed).toBe(true);
   });
   test("2) Empty Array as args -> exception", async () => {
-    const [except, tryGetNothing] = multiAsyncTry([]);
-    expect(except).toBeTruthy();
-    expect(tryGetNothing).toBeDefined();
+    const [tryGetNothing, exception] = multiAsyncTry([]);
 
-    const { exception, failed } = tryGetNothing([]);
+    expect(tryGetNothing).toBeDefined();
     expect(exception).toEqual(
       UnresolvableError.create("asyncFns must NOT be an empty array", {
         functionName: "tryGetNothing",
         value: [],
       }),
     );
-    expect(failed).toBe(true);
   });
   test("3) Promise.resolve works as expected", async () => {
     const odds = 5050;
     const resolve = async (o: number) => Promise.resolve(o);
 
-    const [except, tryGetOdds] = multiAsyncTry<[number], [number]>([resolve]);
-    expect(except).toBeUndefined();
-    expect(tryGetOdds).toBeTruthy();
-
-    const { exception, failed, firstSettled, allSettled } = tryGetOdds([odds]);
+    const [tryGetOdds, exception] = multiAsyncTry<[number], [number]>([
+      resolve,
+    ]);
     expect(exception).toBeUndefined();
-    expect(failed).toBe(false);
+    expect(tryGetOdds).toBeTypeOf("function");
+
+    const { firstSettled, allSettled } = tryGetOdds([odds]);
 
     const [err1, dat1] = await firstSettled;
     expect(err1).toBeUndefined();
@@ -61,18 +55,16 @@ suite("multiAsyncTry", () => {
       return Promise.reject(msg);
     };
 
-    const [except, tryGetMessage] = multiAsyncTry<[string], [never]>([reject]);
-    expect(except).toBeUndefined();
-    expect(tryGetMessage).toBeTruthy();
-
-    const { exception, failed, firstSettled, allSettled } = await tryGetMessage(
-      [msg],
-    );
+    const [tryGetMessage, exception] = multiAsyncTry<[string], [never]>([
+      reject,
+    ]);
     expect(exception).toBeUndefined();
-    expect(failed).toBe(false);
+    expect(tryGetMessage).toBeTypeOf("function");
+
+    const { firstSettled, allSettled } = await tryGetMessage([msg]);
 
     const [err1, dat1] = await firstSettled;
-    expect(err1.message).toBe(msg);
+    expect(err1?.message).toBe(msg);
     expect(dat1).toBeUndefined();
 
     const [[e1, d1]] = await allSettled;
@@ -88,19 +80,14 @@ suite("multiAsyncTry", () => {
       return 5050;
     };
 
-    const [exceptionAtCoinFlip, tryGetOddsOfCoinFlip] = multiAsyncTry<
-      [number],
-      [number]
-    >([getOddsOfCoinFlip]);
-
-    expect(exceptionAtCoinFlip).toBeUndefined();
-    expect(tryGetOddsOfCoinFlip).toBeTruthy();
-
-    const { exception, failed, firstSettled, allSettled } =
-      tryGetOddsOfCoinFlip([1]);
+    const [tryGetOddsOfCoinFlip, exception] = multiAsyncTry<[number], [number]>(
+      [getOddsOfCoinFlip],
+    );
 
     expect(exception).toBeUndefined();
-    expect(failed).toBe(false);
+    expect(tryGetOddsOfCoinFlip).toBeTruthy();
+
+    const { firstSettled, allSettled } = tryGetOddsOfCoinFlip([1]);
 
     const [err1, dat1] = await firstSettled;
     expect(err1).toBeUndefined();
@@ -125,19 +112,14 @@ suite("multiAsyncTry", () => {
       throw new GenericError(msg);
     };
 
-    const [except, tryGetGoodBadMsgs] = multiAsyncTry<
+    const [tryGetGoodBadMsgs, exception] = multiAsyncTry<
       [string, string],
       [string, never]
     >([goodFn, badFn]);
-    expect(except).toBeUndefined();
+    expect(exception).toBeUndefined();
     expect(tryGetGoodBadMsgs).toBeTruthy();
 
-    const { exception, failed, firstSettled, allSettled } = tryGetGoodBadMsgs([
-      goodMsg,
-      badMsg,
-    ]);
-    expect(exception).toBeUndefined();
-    expect(failed).toBe(false);
+    const { firstSettled, allSettled } = tryGetGoodBadMsgs([goodMsg, badMsg]);
 
     const [err1, dat1] = await firstSettled;
     expect(err1).toBeUndefined();
@@ -164,22 +146,17 @@ suite("multiAsyncTry", () => {
       throw new GenericError(msg);
     };
 
-    const [except, tryGetGoodBadMsgs] = multiAsyncTry<
+    const [tryGetGoodBadMsgs, exception] = multiAsyncTry<
       [string, string],
       [string, never]
     >([goodFn, badFn]);
-    expect(except).toBeUndefined();
+    expect(exception).toBeUndefined();
     expect(tryGetGoodBadMsgs).toBeTruthy();
 
-    const { exception, failed, firstSettled, allSettled } = tryGetGoodBadMsgs([
-      goodMsg,
-      badMsg,
-    ]);
-    expect(exception).toBeUndefined();
-    expect(failed).toBe(false);
+    const { firstSettled, allSettled } = tryGetGoodBadMsgs([goodMsg, badMsg]);
 
     const [err1, dat1] = await firstSettled;
-    expect(err1.message).toBe(badMsg);
+    expect(err1?.message).toBe(badMsg);
     expect(dat1).toBeUndefined();
 
     const [[eGood, dGood], [eBad, dBad]] = await allSettled;

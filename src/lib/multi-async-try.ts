@@ -38,7 +38,7 @@ export function multiAsyncTry<
     RetTypes[ArgKey extends keyof RetTypes ? ArgKey : never]
   >;
 }) {
-  let setupException: UnresolvableError<any> | undefined = undefined;
+  // let setupException: UnresolvableError<any> | undefined = undefined;
 
   if (!asyncFns || !Array.isArray(asyncFns)) {
     const exception = UnresolvableError.create(
@@ -47,16 +47,8 @@ export function multiAsyncTry<
         value: asyncFns,
       },
     );
-    setupException = exception;
-    return [
-      exception,
-      tryWithArgsAsync,
-      // () =>
-      //   ({
-      //     exception,
-      //     failed: true,
-      //   }) satisfies MultiSettled<never, never>,
-    ] as const;
+    // setupException = exception;
+    return [tryWithArgsAsync, exception] as const;
   }
   if (asyncFns.length === 0) {
     const exception = UnresolvableError.create(
@@ -65,16 +57,8 @@ export function multiAsyncTry<
         value: [],
       },
     );
-    setupException = exception;
-    return [
-      exception,
-      tryWithArgsAsync,
-      // () =>
-      //   ({
-      //     exception,
-      //     failed: true,
-      //   }) satisfies MultiSettled<never, never>,
-    ] as const;
+    // setupException = exception;
+    return [tryWithArgsAsync, exception] as const;
   }
   asyncFns.forEach((fn, index) => {
     if (typeof fn !== "function") {
@@ -84,20 +68,13 @@ export function multiAsyncTry<
           value: fn,
         },
       );
-      setupException = exception;
-      return [
-        exception,
-        tryWithArgsAsync,
-        // () =>
-        //   ({
-        //     exception,
-        //     failed: true,
-        //   }) satisfies MultiSettled<never, never>,
-      ] as const;
+      // setupException = exception;
+      return [tryWithArgsAsync, exception] as const;
     }
   });
 
-  return [setupException, tryWithArgsAsync] as const;
+  return [tryWithArgsAsync, undefined] as const;
+  // return [setupException, tryWithArgsAsync] as const;
 
   function tryWithArgsAsync<E extends GenericError>(
     args: ArgTypes,
@@ -107,12 +84,12 @@ export function multiAsyncTry<
       all?: (rs: RetTypes[number][]) => void;
     },
   ) {
-    if (!!setupException) {
-      return {
-        exception: setupException,
-        failed: true,
-      } satisfies MultiSettled<never, never>;
-    }
+    // if (!!setupException) {
+    //   return {
+    //     exception: setupException,
+    //     failed: true,
+    //   } satisfies MultiSettled<never, never>;
+    // }
 
     if (errorListsToCatch == null) {
       errorListsToCatch = [];
@@ -138,15 +115,13 @@ export function multiAsyncTry<
               if (Err && error instanceof Err) {
                 return [error, undefined] as const;
               }
-              return [
-                UnresolvableError.create(
-                  "UnresolvableError: Errors to check listed, but none matched error produced",
-                  {
-                    errorsChecked: errorTypes.map((err) => err.name),
-                  },
-                ),
-                undefined,
-              ] as const;
+              const err = UnresolvableError.create(
+                "UnresolvableError: Errors to check listed, but none matched error produced",
+                {
+                  errorsChecked: errorTypes.map((err) => err.name),
+                },
+              );
+              return [err, undefined] as const;
             }
             if (error instanceof GenericError) {
               return [error, undefined] as const;
@@ -164,10 +139,8 @@ export function multiAsyncTry<
           } else if (error === undefined) {
             return [new GenericError("Reason: undefined"), undefined] as const;
           }
-          return [
-            UnresolvableError.create("Unknown Reason!", {}),
-            undefined,
-          ] as const;
+          const err = UnresolvableError.create("Unknown Reason!", {});
+          return [err, undefined] as const;
         },
       );
     });
@@ -193,18 +166,32 @@ export function multiAsyncTry<
     );
 
     let allDat: any[] = []; /* : Awaited<RetTypes[number]>; */
-    const allSettled = Promise.all(
+    const allSettled = Promise.allSettled(
       promises.map((p) => {
-        return p.then((result) => {
-          allDat.push(result);
-          return result;
-        });
+        return p.then(
+          (result) => {
+            allDat.push(result[1]);
+            return result;
+          },
+          (reason) => {
+            allDat.push(undefined);
+          },
+        );
       }),
     );
+    const future = allSettled.then((results) => {
+      return results.map((result) => {
+        if (result.status === "fulfilled") {
+          return result.value;
+        } else if (result.status === "rejected") {
+          return result.reason;
+        }
+      });
+    });
     if (onSettled?.all) {
-      allSettled.finally(() => {
+      future.finally(() => {
         if (onSettled?.all) {
-          if (allDat) {
+          if (allDat.some((dat) => !!dat)) {
             onSettled.all(allDat);
           } else {
             onSettled.all([]);
@@ -214,9 +201,8 @@ export function multiAsyncTry<
     }
 
     return {
-      failed: false,
       firstSettled,
-      allSettled,
+      allSettled: future,
     };
   }
 }
