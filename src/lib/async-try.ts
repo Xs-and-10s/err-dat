@@ -25,9 +25,7 @@ export function asyncTry<
     errorsToCatch = [];
   }
 
-  return async <E extends GenericError | UnresolvableError<any>>(
-    ...args: As
-  ) => {
+  return async <E extends GenericError>(...args: As) => {
     let dat: Awaited<B> | undefined;
     let result: Result<B, E>;
     try {
@@ -39,12 +37,24 @@ export function asyncTry<
       if (err instanceof UnresolvableError) {
         return [err, undefined] as const;
       }
-      if (errorsToCatch?.some((E) => errName === E.name)) {
+      if (errorsToCatch?.some((E) => E.name === errName)) {
         const E = errorsToCatch.find((E) => err instanceof E);
         if (E) {
-          const e = new E(err.message, { cause: error });
+          const e = new E(err.message, {
+            cause: err,
+            ...(err.context ? { context: err.context } : null),
+          });
           return [err, undefined] as const;
         }
+        return [
+          UnresolvableError.create(
+            "Error (Unresolvable): Errors to check listed, but none matched error produced",
+            {
+              errorsChecked: errorsToCatch.map((err) => err.name),
+            },
+          ),
+          undefined,
+        ] as const;
       }
       return [err, undefined] as const;
     } finally {
