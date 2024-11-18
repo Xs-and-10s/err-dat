@@ -2,9 +2,9 @@
 
 ## Summary
 
-Exports functions { `syncTry`, `asyncTry`, `multiSyncTry`, `multiAsyncTry`, `pipeSyncTry`, `pipeAsyncTry` } that **catch thrown errors** and provides them **as values**, which conform to an **`[err, dat]` tuple** format when returning from their wrapped functions, in a pattern corresponding to the proposal: ["Safe Assignment Operator"](https://github.com/arthurfiorette/proposal-safe-assignment-operator) `?=` *(<ins>which perhaps should be `!?=` instead...</ins>)*
+Exports functions { ***`syncTry`***, ***`asyncTry`***, ***`multiSyncTry`***, ***`multiAsyncTry`***, ***`pipeSyncTry`***, ***`pipeAsyncTry`*** } that **catch thrown errors** and provides them **as values**, which conform to an **`[err, dat]` tuple** format when returning from their wrapped functions, in a pattern corresponding to the proposal: ["Safe Assignment Operator"](https://github.com/arthurfiorette/proposal-safe-assignment-operator) **`?=`** *(<ins>which perhaps should be</ins> **`!?=`** <ins>instead...</ins>)*
 
-Also provides { `panic`, `ensureError` } helper functions that help ease and enforce robust error handling!  <ins>**`ensureError`**</ins> allows you to take thrown non-error values or built-in `Error`s from existing catch blocks, or third party functions that throw things, and wrap them into a standardized error (returning `GenericError` or `UnresolvableError`): so that you know what you're getting and it always has a context (which built-in `Error`s do not have; along with `.cause`, `.context` help debugging more easily and quickly).  There is also the `cause` property *(which the built-in `Error` actually has in most environments now)* that allows you to build up your stack trace.  <ins>**`panic`**</ins> is for when you find an `UnresolvableError` & cannot recover, so your program is in an indeterminate state and should abort, failing fast (*extremely helpful in dev/debug mode*).  `panic` takes the error as input and makes clear that you are doing so, and allows you to tack on context if desired: things like the code `owners: string[]` (*that points you to the* ( potential ) *developer(s) that work on the particular code / know it the best*), the `fileName` to look at, even the `lineNumber` to help pinpoint either the exact line or at least the beginning of the rough area, and then whatever else values (*including `value`*) you think is relevant to help debug!
+Also provides { ***`panic`***, ***`ensureError`*** } helper functions that help ease and enforce robust error handling!  <ins>**`ensureError`**</ins> allows you to take thrown non-error values or built-in `Error`s from existing catch blocks, or third party functions that throw things, and wrap them into a standardized error (returning `GenericError` or `UnresolvableError`): so that you know what you're getting and it always has a context (which built-in `Error`s do not have; along with `.cause`, `.context` help debugging more easily and quickly).  There is also the `cause` property *(which the built-in `Error` actually has in most environments now)* that allows you to build up your stack trace.  <ins>**`panic`**</ins> is for when you find an `UnresolvableError` & cannot recover, so your program is in an indeterminate state and should abort, failing fast (*extremely helpful in dev/debug mode*).  `panic` takes the error as input and makes clear that you are doing so, and allows you to tack on context if desired: things like the code `owners: string[]` (*that points you to the* ( potential ) *developer(s) that work on the particular code / know it the best*), the `fileName` to look at, even the `lineNumber` to help pinpoint either the exact line or at least the beginning of the rough area, and then whatever else values (*including `value`*) you think is relevant to help debug!
 
 Finally, as mentioned above, the library provides a set of custom Errors: { **`GenericError`** } that *`extends Error`* & adds *`this.context`*, as well as errors { `UnresolvableError`, `BadRequestError`, `NotFoundError`, `...` } that also *`extends GenericError`*, where **`UnresolvableError`** indicates that the state of the program is such that it should abort, usually (*if not always*) via `panic`!  These <ins>custom errors conform to a superset of the HTTP statusCode spec</ins>, with the addition of `"0xx"` errors reserved for `GenericError` and `CustomError`s, and `"600"` being reserved for `UnresolvableError`.
 
@@ -184,58 +184,51 @@ expect(dat).toBe(total);
 #### `multiAsyncTry`
 ```ts
 /**
- * The return from the returned function from `multiAsyncTry`
- *  where:
- *    <X extends UnresolvableError, P extends Promise<any>>
- * @typedef {Object} MultiSettled
- * @property {X} exception
- * ? // only present when `failed === true`, in which case `firstSettled` & `allSettled` are absent ! 
- * @property {boolean} failed
- * ? // indicates the presence of an `exception` and the absence of both `firstSettled` & `allSettled` (IFF failed: true)... or the opposite (IFF failed: false) !
- * @property {P[]} allSettled
- * @property {P} firstSettled
- */
-
-/**
  * ! `multiAsyncTry`
  * 
-//  * // @param {Array<Promise<any>>} promisesToTry an array of promises
- * @params {((...args: As) => B)[]} awaitablesToTry
+ * @typedef {Object} MultiSettled
+ * @property {P[]} allSettled
+ * @property {P} firstSettled
+ * 
+ * @params {((...args: As) => B)[]} asyncFns
  * @params {E[] | null} errorsToCatch
- * @params {(B => void)[]} afterFirstSettled
+ * @params {(B => void)} afterFirstSettled
  * @params {(B => void)[]} afterAllSettled
  * @returns {(Promise<A>) => B}
- * @returns {MultiSettled} {failed: false, firstSettled, allSettled}
+ * @returns {MultiSettled} {firstSettled, allSettled}
  * `allSettled` is fully populated when all the promises have settled, while `firstSettled` is the first promise to settle... where each promise for both is converted into an `[err, dat]` format.
- * @returns {MultiSettled} {failed: true, exception}
- * Alternatively, could return an exception if an UnresolvableError occurred, corrupting the state of the program/fiber.
  */
 //
-const fetchUserServices = multiAsyncTry<[number, number, E]>([
+const [fetchUserServices, exception] = multiAsyncTry<[string, string, any],[UserHistory, UserProfile, never]>([
   fetchUserHistory,
   fetchUserProfile,
   Promise.reject,
-]);
+],
+(first: B) => {
+  console.log("The first promise settled. You can now do something with this callback.");
+},
+(all: (B | undefined)[]) => {
+  console.log"All the promises have settled.  You can now do something with this callback.
+});
+
+if (exception) {
+  panic(exception.message, exception.context);
+}
 
 const {
-  exception,
-  failed,
   firstSettled,
   allSettled,
 } = await fetchUserServices([id, id, new GenericError("an error")]);
 
-if (failed) {
-  panic(exception.message, exception.context);
-}
 const [theFirstError, theFirstResult] = await firstSettled;
 // ....^..............^
-// ... handle/log logic if needed for the first results...
+// ... handle/log/etc if needed for the first results...
 // .
 // .
 // .
 const [[err1, dat1], [err2, dat2], [err3, dat3]] = await allSettled;
 // .....^.....^.......^.....^.......^.....^
-// ...handle/log logic for all the results now...
+// ...handle/log/etc if needed for all the results...
 // .
 // .
 // .
@@ -253,15 +246,16 @@ expect(theFirstResult).toBe(dat3);
  * @params {}
  */
 //
-const parsePair = multiSyncTry<[string, string]>([
+const [parsePair, exception] = multiSyncTry<[string, string]>([
   (a) => JSON.parse(a),
   JSON.parse
 ]);
-const { exception, failed, finished } = parsePair<[Jsonable, Jsonable], E>("null", '{"x":}');
 
-if (failed) {
+if (exception) {
   panic(exception.message, exception.context);
 }
+
+const { finished } = parsePair<[string, string], [Jsonable, Jsonable]>("null", '{"x":}');
 
 const [[err1, dat1], [err2, dat2]] = finished;
 // .....^.....^.......^.....^
