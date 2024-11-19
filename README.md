@@ -1,5 +1,44 @@
 # **err-dat**
 
+## Description
+```ts
+const [err, dat] = await someFunction(...inputs);
+```
+An abstraction to catch errors from functions that might throw, returning them as values if caught, otherwise returning the data. 
+
+> cf. the proposed [Safe Assignment Operator](https://github.com/arthurfiorette/proposal-safe-assignment-operator) for inspiration:
+```ts
+const [err, dat] ?= someAsyncFunction(...inputs);
+```
+
+This library provides a set of functions that return a friendly `[err, data]` tuple format that exposes either the data returned or the errors caught, with slight variations. 
+
+These differences depend on whether they are <ins>***Sync*** or ***Async***</ins>, <ins>***Singlar*** or ***Plural***</ins>, and if Plural: <ins>***Multi*** (group_of_fns -> race + allSettled) or ***Piped*** (group_of_fns -> serial)</ins>.
+
+## Table of Contents
+- [**err-dat**](#err-dat)
+  - [Description](#description)
+  - [Table of Contents](#table-of-contents)
+  - [Summary](#summary)
+    - [Quick examples:](#quick-examples)
+      - [`asyncTry`](#asynctry)
+      - [`syncTry`](#synctry)
+      - [`multiAsyncTry`](#multiasynctry)
+      - [`multiSyncTry`](#multisynctry)
+      - [`pipeAsyncTry`](#pipeasynctry)
+      - [`pipeSyncTry`](#pipesynctry)
+      - [`ensureError`](#ensureerror)
+  - [Why this library?](#why-this-library)
+    - [Some of the advantages of this approach:](#some-of-the-advantages-of-this-approach)
+    - [Some known alternatives:](#some-known-alternatives)
+  - [API:](#api)
+    - [Usage of `syncTry`:](#usage-of-synctry)
+    - [Usage of `asyncTry`:](#usage-of-asynctry)
+    - [Usage of `multiSyncTry`:](#usage-of-multisynctry)
+    - [Usage of `multiAsyncTry`:](#usage-of-multiasynctry)
+      - [BEFORE, wrapping with `try`/`catch`, with native `Promise` methods:](#before-wrapping-with-trycatch-with-native-promise-methods)
+      - [AFTER: with err-dat package function `multiAsyncTry`:](#after-with-err-dat-package-function-multiasynctry)
+
 ## Summary
 
 Exports functions { ***`syncTry`***, ***`asyncTry`***, ***`multiSyncTry`***, ***`multiAsyncTry`***, ***`pipeSyncTry`***, ***`pipeAsyncTry`*** } that **catch thrown errors** and provides them **as values**, which conform to an **`[err, dat]` tuple** format when returning from their wrapped functions, in a pattern corresponding to the proposal: ["Safe Assignment Operator"](https://github.com/arthurfiorette/proposal-safe-assignment-operator) **`?=`** *(<ins>which perhaps should be</ins> **`!?=`** <ins>instead...</ins>)*
@@ -33,27 +72,27 @@ import {
 /**
  * `asyncTry`
  *  where: 
- *    <B extends any, As extends any[]>
+ *    <As extends any[], B extends any, E extends GenericError>
  * @param {(...args: As) => Promise<B>} asyncFnToTry
  * @param {(E[] | null) | undefined} errorsToCatch
  * @param {((B) => void) | undefined} onDone
  */
-const tryGetUser = asyncTry<User, [number]>(getUser/* , 
-  [
-    BadRequestError,
-    NotFoundError,
-    CustomError,
-    UnresolvableError,
-  ] */
-);
-
-const [err, dat] = await tryGetUser(2, 
+const tryGetUser = asyncTry<[number], User>(getUser, 
   [
     BadRequestError,
     NotFoundError,
     CustomError,
     UnresolvableError,
   ]
+);
+
+const [err, dat] = await tryGetUser(2/* , 
+  [
+    BadRequestError,
+    NotFoundError,
+    CustomError,
+    UnresolvableError,
+  ] */
 );
 // first check if there's an error, and if so, handle it appropriately!
 if (err) {
@@ -63,7 +102,7 @@ if (err) {
       message, 
       {
         value: 2,
-        functionName: "tryGetUser",
+        functionName: tryGetUser.name ?? "tryGetUser",
         owners: ["Xs-and-10s"],
         fileName: "@/src/dir/file.ts",
         lineNumber: 42,
@@ -372,15 +411,15 @@ try {
 
 ## Why this library?
 
-### These are some of the advantages of this approach: 
+### Some of the advantages of this approach: 
 1. **Errors** as <ins>***values***!</ins>
-   - Similar to golang, it's easier to reason about errors and handling them if they are values, rather than thrown unchecked or checked exceptions.
+   - Similar to golang, it's easier to reason about errors and handling them if they are values, rather than thrown unchecked or checked exceptions.  First, you check if there's an error value: if so, you handle it by recovering or with a `panic`; if there's no error, you proceed to work with the data as expected.
    - Very similar to the ["Safe Assignment Operator"](https://github.com/arthurfiorette/proposal-safe-assignment-operator) proposal, where a tuple of `[error, data]` is returned from an async function via `?=`... e.g., `[err, dat] ?= await fetch(...)`
 2. Improved ergonomics encourages ***actual* handling of errors / thrown exceptions**!
    - Sometimes, maybe even quite often, the *only* error handling is a simple `console.error` of the error... this library's **`[err, dat]`** tuple format discourages simple console logs and <ins>encourages detecting & handling the error</ins>.
    - Also potentially quite often, ***multiple*** potentially throwing functions are lumped into ***one*** `try` block... this library's  provision of separate **`{ syncTry, asyncTry }`** functions discourage lumping multiple throwable functions together and instead <ins>encourage separating throwable functions by error to be handled</ins>.
-   - **`{ multiSyncTry, multiAsyncTry, pipeSyncTry, pipeAsyncTry }`** functions are there to handle when you do need to lump multiple throwable functions together, while still keeping them separatable and clean. *(<ins>**`multi__Try(fs: Fs[]): (xs: Xs[]) => readonly [err, dat][Length<Xs> extends number]`**</ins> functions take an array of functions to call and return a function that takes an array of inputs that correspond to the original array of functions input.  <ins>**`pipe__Try(fs: Fs[]): (x: X) => readonly [err, dat]`**</ins> functions take an array of (sync/async) functions to call and return a function that takes a single input to be threaded through the original array of functions, from left-to-right or top-to-bottom, with the result of one `f(x) -> y` being passed to be called by the next function `g(y) -> z`, and so on, until the final `func(_) -> [err, dat]`)*
-   - **If something is thrown, but it's a primitive value, a non-error, or even a built-in Error** (without `.context`), you can wrap it with **`ensureError`** to make sure that the result is at least a `GenericError`, or a subclass like `UnresolvableError`.  Use this function to handle libraries that throw errors, or in the top of `catch` blocks in the portions of your codebase that still use `try`/`catch`.  By using the function this way, you can always be sure you are dealing with specialized errors that have `.context` and `.statusCode` properties.
+   - **`{ multiSyncTry, multiAsyncTry, pipeSyncTry, pipeAsyncTry }`** functions are there to handle when you do need to lump multiple throwable functions together, while still keeping them separate and clean. *(<ins>**`multi__Try(fs: Fs[]): (xs: Xs[]) => readonly [err, dat][Length<Xs> extends number]`**</ins> functions take an array of functions to call and return a function that takes an array of inputs that correspond to the original array of functions input.  <ins>**`pipe__Try(fs: Fs[]): (x: X) => readonly [err, dat]`**</ins> functions take an array of (sync/async) functions to call and return a function that takes a single input to be threaded through the original array of functions, from left-to-right or top-to-bottom, with the result of one `f(x) -> y` being passed to be called by the next function `g(y) -> z`, and so on, until the final `func(_) -> [err, dat]`)*
+   - **If something is thrown, but it's a primitive value, a non-error, or even a built-in Error** (without `.context` or a `.statusCode`), you can wrap it with **`ensureError`** to make sure that the result is at least a `GenericError`, or a subclass like `UnresolvableError`.  Use this function to handle libraries that throw errors, or in the top of `catch` blocks in the portions of your codebase that still use `try`/`catch`.  By using the function this way, you can always be sure you are dealing with specialized errors that have `.context` and `.statusCode` properties.
    - **If the error cannot be handled**, provides a way to crash quickly with a descriptive report... this library's **`{ panic }`** function causes the application to crash, with as much information as you want to give it, including `description: string`, `cause` (the/an error), `fileName?: string`, and `lineNumber: number` in the form **`panic(error, { cause, fileName, lineNumber})`**.
 3. **Fewer & less nestings** leads to improved code readability FTW!
    - `try`/`catch`/`finally` intrinsically, inexorably leads to nested code; this library helps you <ins>avoid this nesting by abstracting it away</ins>.
@@ -408,7 +447,16 @@ try {
    - Exposes *standardized error types* for you to use!
    - Autocomplete!
 
-## Examples:
+### Some known alternatives:
+- [try-catch-ts](https://github.com/futurizame/try-catch-ts) *(most similar alternative, but lacks a lot of the extra features, like expected errors, standardized errors, `multi__Try` functions, `pipe__Try` functions, `panic` & `ensureError` functions... also assumes that the only thing thrown is either an `Error` or a `string`)* 
+- [neverthrow](https://github.com/supermacro/neverthrow) *(A popular alternative, uses a Result type that is either Ok or Err.  Both Async and Sync variations, extensive & powerful API, as well as thorough documentation.  Does not adhere to the 'Safe Assignment Operator' proposal, however...)*
+- [Effect.ts](https://effect.website/) *(The Master library/framework... it has pretty much EVERYTHING you'll ever need, while still being tree-shakeable.  You DO STILL need to learn it, though, and it has a high learning curve, though in the end it very well might be worth it, and the code might well be less complex.  Do look into it, at least, but `err-dat` is in-between `try-catch-ts` and `Effect` in terms of scope and complexity.  If that appeals to you, you might like this.)*
+- [fp-ts](https://github.com/gcanti/fp-ts) *(IMPORTANT: FP-TS IS JOINING / MERGING / MIND-MELDING INTO... Effect.ts!! (If you were thinking about this one, I'd choose to go with Effect, instead, IMHO) ... a bit on the bulky side, requires a lot of to near-total buy-in for your application, in order to be helpful, and there's the learning curve, but once you get past that, you may not want to go back to light- or medium-weight libraries/frameworks/programming!)*
+- [io-ts](https://github.com/gcanti/io-ts) *(useful, but depends on fp-ts... again, go with Effect, if you want the whole kit-and-kaboodle!)*
+- [try-catch-fn](https://github.com/codingbeautydev/try-catch-fn) *(unifies the result into either the value returned or the result of the catch... how does one know which it is?...)*
+- ...?
+
+## API:
 
 ### Usage of `syncTry`:
 
@@ -432,7 +480,7 @@ async function getUser(id: number) {
   return { id, name: "Jo Person" };
 }
 ```
-> ^ Example async function that could potential throw an Error:
+> ^ Example async function that could potentially throw an Error:
 > (throws if `user.id === 2`)
 
 ...
