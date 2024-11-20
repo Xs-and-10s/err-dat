@@ -443,9 +443,11 @@ try {
        - Prevented from using `.statusCode` of `"000"`, as that is reserved for `GenericError`.
        - throws an `GenericError` (with *description*) if there are more than 99 instances, to <ins>encourage you to use pre-defined Standard Errors</ins>, while still allowing you the escape hatch of `CustomError`.
 6. **TypeScript**!
-   - Built with *types*, exposing Intellisense, and helping to prevint many faults/errors...
+   - Built with *types*, exposing Intellisense!
+     - Inline errors!
+     - Autocomplete!
+     - Automatic refactors!
    - Exposes *standardized error types* for you to use!
-   - Autocomplete!
 
 ### Some known alternatives:
 - [try-catch-ts](https://github.com/futurizame/try-catch-ts) *(most similar alternative, but lacks a lot of the extra features, like expected errors, standardized errors, `multi__Try` functions, `pipe__Try` functions, `panic` & `ensureError` functions... also assumes that the only thing thrown is either an `Error` or a `string`)* 
