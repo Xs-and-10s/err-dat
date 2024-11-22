@@ -8,6 +8,7 @@
     "ci": "npm run build && npm run check-format && npm run check-exports && npm run test",
     "format": "prettier --write .",
     "local-release": "changeset version && changeset publish",
+    "prepublishOnly": "npm run ci",
     "test": "vitest run"
   },
   "main": "dist/index.js",
