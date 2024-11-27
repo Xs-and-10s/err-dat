@@ -1,5 +1,5 @@
-import type { GenericError } from "../errors/_000-generic-error.js";
+import type { GenericError } from "../errors/index.js";
 
-export type Result<T, E extends GenericError = GenericError> =
-  | [undefined, value: T]
-  | [error: E, undefined];
+export type Result<T, E extends Error = GenericError> =
+  | readonly [error: undefined, value: T]
+  | readonly [error: E, value: undefined];
